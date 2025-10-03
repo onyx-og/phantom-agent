@@ -1,0 +1,47 @@
+
+{
+  "environment": {
+    "linux": {
+      "commands": {
+        "list_connections": ["ss", "-tuln"],
+        "firewall_status": ["iptables", "-L"],
+        "reload_nginx": [
+          "/usr/sbin/nginx",
+          "-s",
+          "reload"
+        ],
+        "restart_nginx": [
+          "/usr/bin/systemctl",
+          "restart",
+          "nginx"
+        ],
+        "list_docker_ps": [
+          "/usr/bin/docker",
+          "ps",
+          "--no-trunc"
+        ],
+        "git_pull": [
+          "/usr/bin/git",
+          "-C",
+          "{0}",
+          "pull"
+        ],
+        "add_user": [
+          "/usr/sbin/useradd",
+          "{0}"
+        ]
+      }
+    },
+    "windows": {
+      "commands": {
+        "restart_iis": ["powershell", "Restart-Service", "W3SVC"],
+        "list_connections": ["netstat", "-an"],
+        "firewall_status": ["powershell", "Get-NetFirewallRule"]
+      }
+    }
+  },
+  "tokens": [
+    "your-secure-token-here"
+  ],
+  "log_file": "/var/log/phantom-agent.log"
+}

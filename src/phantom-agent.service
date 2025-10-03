@@ -1,0 +1,18 @@
+[Unit]
+Description=Phantom Privileged Agent (UDS)
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /run/phantom-agent
+ExecStartPre=/bin/chown root:phantom /run/phantom-agent || true
+ExecStartPre=/bin/chmod 0770 /run/phantom-agent
+ExecStart=/usr/bin/env python3 /usr/local/bin/phantom_agent.py
+User=root
+Group=root
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target
