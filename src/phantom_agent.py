@@ -9,6 +9,7 @@ import getpass
 import subprocess
 import platform
 import logging
+import re
 from typing import List
 import threading
 from pathlib import Path
@@ -254,6 +255,25 @@ class PhantomAgent:
             return {"error": "unknown_command"}, 400
 
         cmd_spec = self.commands[command]
+
+        placeholder_indices = []
+        for token in cmd_spec:
+            for match in re.findall(r"\{(\d+)\}", token):
+                placeholder_indices.append(int(match))
+
+        if placeholder_indices:
+            required_count = max(placeholder_indices) + 1
+            if len(args) < required_count:
+                msg = f"{command} requires {required_count} argument(s)"
+                self.audit({
+                    "event": "execute.missing_args",
+                    "request_id": request_id,
+                    "caller": remote_identity,
+                    "command": command,
+                    "expected": required_count,
+                    "provided": len(args),
+                })
+                return {"error": "missing_argument", "message": msg}, 400
 
         try:
             cmd_list = build_command(cmd_spec, args)
