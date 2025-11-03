@@ -1,0 +1,10 @@
+[project]
+name = "phantom-agent"
+version = "0.1.0"
+description = "Cross-platform Phantom Agent"
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
