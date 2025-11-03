@@ -121,7 +121,10 @@ class PhantomAgent:
             uid = os.geteuid()
         except Exception:
             uid = "N/A"
-        self.logger.info("phantom-agent starting (uid=%s user=%s platform=%s)", uid, getpass.getuser(), self.os_name)
+        self.logger.info(
+            "phantom-agent starting (uid=%s user=%s platform=%s)", 
+            uid, getpass.getuser(), self.os_name
+        )
 
         self.commands = config.get("environment", {}).get(self.os_name, {}).get("commands", {})
         if not self.commands:
@@ -170,7 +173,8 @@ class PhantomAgent:
                 if body is None:
                     return
                 req = json.loads(body.decode("utf-8"))
-                # remote_identity could be the uid of the peer if desired (requires getsockopt SO_PEERCRED)
+                # remote_identity could be the uid of the peer
+                #  if desired (requires getsockopt SO_PEERCRED)
                 remote = "local"
                 resp_obj, status = self.handle_request(req, remote)
                 send_msg(conn, json.dumps(resp_obj).encode("utf-8"))
@@ -225,11 +229,17 @@ class PhantomAgent:
         args = req.get("args", [])
         request_id = req.get("request_id")
 
-        self.audit({"event": "execute.request", "request_id": request_id, "caller": remote_identity, "command": command, "args": args})
+        self.audit({
+            "event": "execute.request", "request_id": request_id, 
+            "caller": remote_identity, "command": command, "args": args
+        })
 
         # auth
         if token not in self.config["tokens"]:
-            self.audit({"event": "execute.auth_failed", "request_id": request_id, "caller": remote_identity, "reason": "bad_token"})
+            self.audit({
+                "event": "execute.auth_failed", "request_id": request_id, 
+                "caller": remote_identity, "reason": "bad_token"
+            })
             return {"error": "unauthorized"}, 403
 
         # whitelist
@@ -248,21 +258,37 @@ class PhantomAgent:
         try:
             cmd_list = build_command(cmd_spec, args)
         except Exception as e:
-            self.audit({"event": "execute.bad_spec", "request_id": request_id, "caller": remote_identity, "command": command, "error": str(e)})
+            self.audit({
+                "event": "execute.bad_spec", "request_id": request_id, 
+                "caller": remote_identity, "command": command, "error": str(e)
+            })
             return {"error": "bad_command_spec", "why": str(e)}, 500
 
         # Execute safely (no shell=True)
         try:
             self.logger.info("Running command %s (request_id=%s)", command, request_id)
-            proc = subprocess.run(cmd_list, capture_output=True, text=True, timeout=self.config.get("timeout_secs", 120))
+            proc = subprocess.run(
+                cmd_list, capture_output=True, text=True,
+                timeout=self.config.get("timeout_secs", 120
+            ))
             resp = {"returncode": proc.returncode, "stdout": proc.stdout, "stderr": proc.stderr}
-            self.audit({"event": "execute.result", "request_id": request_id, "caller": remote_identity, "command": command, "returncode": proc.returncode, "stdout_len": len(proc.stdout), "stderr_len": len(proc.stderr)})
+            self.audit({
+                "event": "execute.result", "request_id": request_id, 
+                "caller": remote_identity,"command": command, "returncode": proc.returncode,
+                "stdout_len": len(proc.stdout), "stderr_len": len(proc.stderr)
+            })
             return resp, (200 if proc.returncode == 0 else 500)
         except subprocess.TimeoutExpired as te:
-            self.audit({"event": "execute.timeout", "request_id": request_id, "caller": remote_identity, "command": command})
+            self.audit({
+                "event": "execute.timeout", "request_id": request_id,
+                "caller": remote_identity, "command": command
+            })
             return {"error": "timeout"}, 504
         except Exception as e:
-            self.audit({"event": "execute.error", "request_id": request_id, "caller": remote_identity, "command": command, "error": str(e)})
+            self.audit({
+                "event": "execute.error", "request_id": request_id, 
+                "caller": remote_identity, "command": command, "error": str(e)
+            })
             return {"error": "exec_failed", "why": str(e)}, 500
 
 if __name__ == "__main__":
