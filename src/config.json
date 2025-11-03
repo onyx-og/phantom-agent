@@ -3,6 +3,8 @@
   "environment": {
     "linux": {
       "commands": {
+        "echo": ["echo", "{0}"],
+        "ls": ["ls", "-l", "{0}"],
         "list_connections": ["ss", "-tuln"],
         "firewall_status": ["iptables", "-L"],
         "reload_nginx": [
@@ -41,7 +43,9 @@
     }
   },
   "tokens": [
-    "your-secure-token-here"
+    "your-secure-token-here",
+    "devtoken123"
   ],
-  "log_file": "/var/log/phantom-agent.log"
+  "log_file": "phantom-agent.log",
+  "audit_log": "./phantom-agent.jsonl"
 }

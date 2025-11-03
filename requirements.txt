@@ -1,0 +1,2 @@
+# Runtime dependencies
+pywin32; platform_system == "Windows"

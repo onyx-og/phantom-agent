@@ -14,11 +14,9 @@ import threading
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
-# Allow running with different configs
+# [TODO] Integrate into config.json?
 # CONFIG_PATH = os.environ.get("PHANTOM_AGENT_CONFIG", "/etc/phantom-agent/config.json")
 # UNIX_SOCKET = os.environ.get("PHANTOM_AGENT_SOCKET", "/run/phantom-agent/phantom-agent.sock")
-# TODO make it load from the config, move the dependant into the class..
-LOG_PATH    = os.environ.get("PHANTOM_AGENT_LOG", "/var/log/phantom-agent.jsonl")
 
 # Named Pipe support via pywin32 on Windows
 try:
@@ -33,14 +31,13 @@ except Exception:
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
 def load_config():
+    env_path = os.environ.get("PHANTOM_AGENT_CONFIG")
+    if env_path and Path(env_path).exists():
+        with open(env_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+        
     with open(CONFIG_PATH, "r") as f:
         return json.load(f)
-    
-def json_log_writer(path):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    f = open(path, "a", encoding="utf-8", buffering=1)
-    return f
 
 def setup_logger(log_file):
     logger = logging.getLogger("phantom-agent")
@@ -50,9 +47,6 @@ def setup_logger(log_file):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
-
-# def json_log_writer(logger, data):
-#     logger.info(json.dumps(data))
 
 def safe_quote_windows(arg):
     if not arg:
@@ -117,7 +111,11 @@ class PhantomAgent:
         
         self.config = config
         self.logger = setup_logger(config.get("log_file", "phantom-agent.log"))
+        audit_path = config.get("audit_log", "phantom-agent.jsonl")
+        self.audit_file = open(audit_path, "a", encoding="utf-8", buffering=1)
         self.os_name = platform.system().lower()
+        env = self.config.get("environment", {}).get(self.os_name, {})
+        self.commands = env.get("commands", {})
 
         try:
             uid = os.geteuid()
@@ -137,15 +135,15 @@ class PhantomAgent:
                 os.remove(self.sock_name)
         self.tokens = set(config.get("tokens", []))
 
-    def audit(logger, obj: dict):
+    def audit(self, obj: dict):
         """Write a single JSON object line to audit file and flush."""
         ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         obj_out = {"ts": ts, **obj}
         try:
-            json_log_writer(LOG_PATH).write(json.dumps(obj_out, ensure_ascii=False) + "\n")
+            self.audit_file.write(json.dumps(obj_out, ensure_ascii=False) + "\n")
         except Exception:
             # fallback to internal log
-            logger.exception("Failed to write audit log")
+            self.logger.exception("Failed to write audit log")
 
     def run(self):
         if self.os_name == "windows":
@@ -235,11 +233,18 @@ class PhantomAgent:
             return {"error": "unauthorized"}, 403
 
         # whitelist
-        if command not in self.config["commands"]:
-            self.audit({"event": "execute.reject", "request_id": request_id, "caller": remote_identity, "command": command, "reason": "unknown_command"})
+        if command not in self.commands:
+            self.audit({
+                "event": "execute.reject",
+                "request_id": request_id,
+                "caller": remote_identity,
+                "command": command,
+                "reason": f"unknown_command (env={self.os_name})"
+            })
             return {"error": "unknown_command"}, 400
 
-        cmd_spec = self.config["commands"][command]
+        cmd_spec = self.commands[command]
+
         try:
             cmd_list = build_command(cmd_spec, args)
         except Exception as e:
