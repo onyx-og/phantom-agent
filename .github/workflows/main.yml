@@ -30,7 +30,7 @@ jobs:
 
       - name: Build native binary
         run: |
-          pyinstaller phantom-agent.spec
+          pyinstaller src/phantom-agent.spec
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
