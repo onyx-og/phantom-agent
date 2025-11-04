@@ -36,9 +36,14 @@
     },
     "windows": {
       "commands": {
-        "restart_iis": ["powershell", "Restart-Service", "W3SVC"],
+        "echo": ["cmd", "/c", "echo", "{0}"],
+        "dir": ["cmd", "/c", "dir", "{0}"],
         "list_connections": ["netstat", "-an"],
-        "firewall_status": ["powershell", "Get-NetFirewallRule"]
+        "firewall_status": ["powershell", "Get-NetFirewallRule"],
+        "restart_iis": ["powershell", "Restart-Service", "W3SVC"],
+        "system_info": ["powershell", "Get-ComputerInfo"],
+        "whoami": ["whoami"],
+        "git_pull": ["git", "-C", "{0}", "pull"]
       }
     }
   },
