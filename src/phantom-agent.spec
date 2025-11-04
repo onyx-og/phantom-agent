@@ -5,7 +5,7 @@ a = Analysis(
     ['phantom_agent.py'],
     pathex=[],
     binaries=[],
-    datas=[('src/config.json', '.')],  # include config
+    datas=[('config.json', '.')],  # include config
     hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
