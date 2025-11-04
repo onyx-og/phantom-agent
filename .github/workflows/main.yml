@@ -31,7 +31,7 @@ jobs:
 
       - name: Build native binary
         run: |
-          pyinstaller --clean --noconfirm src/phantom-agent.spec
+          pyinstaller --clean --noconfirm --onefile --name phantom-agent src/phantom_agent.py
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
