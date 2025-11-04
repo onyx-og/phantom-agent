@@ -196,24 +196,32 @@ class PhantomAgent:
                     pipe_name,
                     win32pipe.PIPE_ACCESS_DUPLEX,
                     win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_WAIT,
-                    1, 65536, 65536,
-                    0, None
+                    10, 65536, 65536, 0, None
                 )
+                # Wait for client to connect
                 win32pipe.ConnectNamedPipe(pipe, None)
+
+                # Handle client in a new thread
                 t = threading.Thread(target=self.handle_windows_pipe_client, args=(pipe,))
                 t.daemon = True
                 t.start()
-            except Exception as e:
+
+            except pywintypes.error as e:
+                if e.args[0] == 231:
+                    # All instances busy — just wait a bit instead of spamming logs
+                    time.sleep(0.05)
+                    continue
                 self.logger.error(f"Named pipe server error: {e}")
+
 
     def handle_windows_pipe_client(self, pipe):
         try:
             hr, data = win32file.ReadFile(pipe, 65536)
             if hr == 0:
-                # request = data.decode("utf-8")
                 request = json.loads(data.decode("utf-8"))
-                response = self.handle_request(request, "namedpipe")
-                win32file.WriteFile(pipe, response.encode("utf-8"))
+                response, status = self.handle_request(request, "namedpipe")
+                resp_bytes = json.dumps(response).encode("utf-8")
+                win32file.WriteFile(pipe, resp_bytes)
         except Exception as e:
             self.logger.error(f"Pipe client error: {e}")
         finally:
@@ -221,6 +229,7 @@ class PhantomAgent:
                 win32file.CloseHandle(pipe)
             except Exception:
                 pass
+
 
     # ---- Request Handler ----
     def handle_request(self, req, remote_identity: str = None):
