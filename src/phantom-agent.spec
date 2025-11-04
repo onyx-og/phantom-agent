@@ -2,7 +2,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['src/phantom_agent.py'],
+    ['phantom_agent.py'],
     pathex=[],
     binaries=[],
     datas=[('src/config.json', '.')],  # include config
